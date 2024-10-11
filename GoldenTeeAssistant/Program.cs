@@ -30,12 +30,16 @@ namespace GoldenTeeAssistant
 
 		public static string _postgreBinPath = Path.Combine(programDirectory, @"GoldenTeeAssistant\8.3\bin");
 		public static string _postgreDataPath = Path.Combine(programDirectory, @"GoldenTeeAssistant\8.3\data");
-		public static string _databaseSourceFile = @"1922-postgresql_database-GameDB-backup";
-		public static string _expectedMD5 = "A825B07F066CA3124F8D7FABE4F8CD5F";
-		public static long _expectedSize = 1583616;
-		public static string _tpProfile = "GoldenTeeLive2006.xml";
+		public static string _databaseSourceFile = @"";
+		public static string _expectedMD5 = "";
+		public static long _expectedSize = -1;
+		public static string _tpProfile = "";
+		public static string _databaseName = "";
+		public static string _patchToUse = "";
 		private static int? databaseProcessId = null;
 		private static string newDatabaseFile = "";
+		public static List<string> _possibleBddSourcePath = new List<string>();
+
 
 		private static uint _mouseSpeedSaved = 0;
 		private static bool _mousePrecisionSaved = false;
@@ -90,29 +94,87 @@ namespace GoldenTeeAssistant
 				MessageBox.Show("Missing game.bin, the program must be in the same folder as the game");
 				Environment.Exit(1);
 			}
-			if (!File.Exists(Path.Combine(gamePath, "assetlist.txt")))
+			else
 			{
-				if (File.Exists(Path.Combine(programDirectory, "..", "4", "assetlist.txt")))
+				string md5game = MD5Calc(Path.Combine(gamePath, "game.bin"));
+				if(md5game == "51ED3A7313EB5A5B8D34E3715F5C7BC8")
 				{
-					DialogResult result = MessageBox.Show("Do you want to setup the game folder", "Confirmation", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
-					if (result == DialogResult.Yes)
-					{
-						string sourceDir = Path.Combine(Directory.GetParent(gamePath).FullName, "4");
-						string destDir = gamePath;
-						MoveDirectory(sourceDir, destDir, true);
-					}
-					else
-					{
-						MessageBox.Show($"Exit");
-						Environment.Exit(1);
-					}
+					_databaseSourceFile = @"1922-postgresql_database-GameDB-backup";
+					_expectedMD5 = "A825B07F066CA3124F8D7FABE4F8CD5F";
+					_expectedSize = 1583616;
+					_tpProfile = "GoldenTeeLive2006.xml";
+					_databaseName = "GameDB06";
+					_patchToUse = "bddpatch.bdf";
+
+					string bf_try1 = Path.GetFullPath(Path.Combine(gamePath, "pg_backup", "2017-12-18", _databaseSourceFile));
+					string bf_try2 = Path.GetFullPath(Path.Combine(gamePath, "..", "6", "pg_backup", "2017-12-18", _databaseSourceFile));
+					string bf_try3 = Path.GetFullPath(Path.Combine(gamePath, _databaseSourceFile));
+					_possibleBddSourcePath.Add(bf_try1);
+					_possibleBddSourcePath.Add(bf_try2);
+					_possibleBddSourcePath.Add(bf_try3);
 				}
-				else
+				if (md5game == "2A3E5F85E78B6D7BC6C9F4AF6CB13FFD")
 				{
-					MessageBox.Show($"Some game files seems missing.");
+					_databaseSourceFile = @"2043-postgresql_database-GameDB-backup";
+					_expectedMD5 = "915802A03CF5C60B62E1F7B7AB7C3716";
+					_expectedSize = 2157568;
+					_tpProfile = "GoldenTeeLive2007.xml";
+					_databaseName = "GameDB07";
+					_patchToUse = "bddpatch2007.bdf";
+
+					string bf_try1 = Path.GetFullPath(Path.Combine(gamePath, "pg_backup", "2017-12-18", _databaseSourceFile));
+					string bf_try3 = Path.GetFullPath(Path.Combine(gamePath, _databaseSourceFile));
+					_possibleBddSourcePath.Add(bf_try1);
+					_possibleBddSourcePath.Add(bf_try3);
+				}
+				if (md5game == "3E183BEB550BDF16AD1CC44855872D80")
+				{
+					_databaseSourceFile = @"1433-postgresql_database-GameDB-backup";
+					_expectedMD5 = "F9EE2C1ADBF5BEDD0EA9ABA7F5C0F3CF";
+					_expectedSize = 6951424;
+					_tpProfile = "PowerPuttLive2012.xml";
+					_databaseName = "GameDBPP12";
+					_patchToUse = "bddpatchpp12.bdf";
+
+					string bf_try1 = Path.GetFullPath(Path.Combine(gamePath, "pg_backup", _databaseSourceFile));
+					string bf_try3 = Path.GetFullPath(Path.Combine(gamePath, _databaseSourceFile));
+					_possibleBddSourcePath.Add(bf_try1);
+					_possibleBddSourcePath.Add(bf_try3);
+				}
+				if (_databaseName == "")
+				{
+					MessageBox.Show("game.bin does not match any know md5");
 					Environment.Exit(1);
 				}
 			}
+
+			if(_tpProfile == "GoldenTeeLive2006.xml")
+			{
+				if (!File.Exists(Path.Combine(gamePath, "assetlist.txt")))
+				{
+					if (File.Exists(Path.Combine(programDirectory, "..", "4", "assetlist.txt")))
+					{
+						DialogResult result = MessageBox.Show("Do you want to setup the game folder", "Confirmation", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+						if (result == DialogResult.Yes)
+						{
+							string sourceDir = Path.Combine(Directory.GetParent(gamePath).FullName, "4");
+							string destDir = gamePath;
+							MoveDirectory(sourceDir, destDir, true);
+						}
+						else
+						{
+							MessageBox.Show($"Exit");
+							Environment.Exit(1);
+						}
+					}
+					else
+					{
+						MessageBox.Show($"Some game files seems missing.");
+						Environment.Exit(1);
+					}
+				}
+			}
+
 			if (!Directory.Exists(_postgreBinPath))
 			{
 				MessageBox.Show("Missing Postgre folder");
@@ -125,12 +187,15 @@ namespace GoldenTeeAssistant
 				if (databaseExist == 0)
 				{
 					string backupFile = "";
-					string bf_try1 = Path.Combine(gamePath, "pg_backup", "2017-12-18", _databaseSourceFile);
-					string bf_try2 = Path.Combine(gamePath, "..", "6", "pg_backup", "2017-12-18", _databaseSourceFile);
-					string bf_try3 = Path.Combine(gamePath, _databaseSourceFile);
-					if (backupFile == "" && File.Exists(bf_try1) && MD5Calc(bf_try1) == _expectedMD5) backupFile = bf_try1;
-					if (backupFile == "" && File.Exists(bf_try2) && MD5Calc(bf_try2) == _expectedMD5) backupFile = bf_try2;
-					if (backupFile == "" && File.Exists(bf_try3) && MD5Calc(bf_try3) == _expectedMD5) backupFile = bf_try3;
+
+					foreach(var possiblePath in _possibleBddSourcePath)
+					{
+						if(File.Exists(possiblePath) && MD5Calc(possiblePath) == _expectedMD5)
+						{
+							backupFile = possiblePath;
+							break;
+						}
+					}
 					if (backupFile == "")
 					{
 						var filePaths = Directory.EnumerateFiles(gamePath, "*", new EnumerationOptions
@@ -256,50 +321,68 @@ namespace GoldenTeeAssistant
 					{
 						string backupFile = "";
 						{
-							using (OpenFileDialog openFileDialog = new OpenFileDialog())
+							foreach (var possiblePath in _possibleBddSourcePath)
 							{
-								openFileDialog.Filter = $"{_databaseSourceFile}|{_databaseSourceFile}";
-								openFileDialog.Title = $"Select {_databaseSourceFile}";
-
-								string sourcefolder = programDirectory;
-								if (Directory.Exists(Path.Combine(programDirectory, "pg_backup", "2017-12-18"))) sourcefolder = Path.Combine(programDirectory, "pg_backup", "2017-12-18");
-								if (Directory.Exists(Path.Combine(programDirectory, "..", "6", "pg_backup", "2017-12-18"))) sourcefolder = Path.Combine(programDirectory, "..", "6", "pg_backup", "2017-12-18");
-								openFileDialog.InitialDirectory = Path.GetFullPath(sourcefolder);
-
-								// Show the dialog and get result
-								if (openFileDialog.ShowDialog() == DialogResult.OK)
+								if (File.Exists(possiblePath) && MD5Calc(possiblePath) == _expectedMD5)
 								{
-									// Get the path and file name of the selected file
-									backupFile = openFileDialog.FileName;
-									string fileName = Path.GetFileNameWithoutExtension(backupFile);
-									string md5Source = "";
-									using (var md5 = MD5.Create())
-									{
-										using (var stream = File.OpenRead(backupFile))
-										{
-											var hash = md5.ComputeHash(stream);
-											md5Source = BitConverter.ToString(hash).Replace("-", "").ToUpperInvariant();
-										}
-									}
-									if (md5Source != _expectedMD5)
-									{
-										MessageBox.Show($"Invalid MD5 ({md5Source}), Expected : {_expectedMD5}");
-										return;
-									}
-
-									newDatabaseFile = PatchDatabase(backupFile);
-									if (newDatabaseFile == "")
-									{
-										MessageBox.Show("error processing database");
-										return;
-									}
-									InstallDatabase(newDatabaseFile);
+									backupFile = possiblePath;
+									break;
 								}
-								else
+							}
+							if (backupFile == "")
+							{
+								var filePaths = Directory.EnumerateFiles(gamePath, "*", new EnumerationOptions
 								{
-									MessageBox.Show("No file selected.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+									IgnoreInaccessible = true,
+									RecurseSubdirectories = true
+								});
+								foreach (var filePath in filePaths)
+								{
+									if (new FileInfo(filePath).Length == _expectedSize && MD5Calc(filePath) == _expectedMD5)
+									{
+										backupFile = filePath;
+										break;
+									}
+								}
+							}
+							if(backupFile == "")
+							{
+								using (OpenFileDialog openFileDialog = new OpenFileDialog())
+								{
+									openFileDialog.Filter = $"{_databaseSourceFile}|{_databaseSourceFile}";
+									openFileDialog.Title = $"Select {_databaseSourceFile}";
+
+									string sourcefolder = programDirectory;
+									openFileDialog.InitialDirectory = Path.GetFullPath(sourcefolder);
+
+									// Show the dialog and get result
+									if (openFileDialog.ShowDialog() == DialogResult.OK)
+									{
+										string md5Source = MD5Calc(openFileDialog.FileName);
+										if (md5Source != _expectedMD5)
+										{
+											MessageBox.Show($"Invalid MD5 ({md5Source}), Expected : {_expectedMD5}");
+											return;
+										}
+										backupFile = openFileDialog.FileName;
+									}
+									else
+									{
+										MessageBox.Show("No file selected.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+										return;
+									}
+								}
+							}
+							if(backupFile != "")
+							{
+								newDatabaseFile = PatchDatabase(backupFile);
+								//MessageBox.Show($"debug : new database = {newDatabaseFile}");
+								if (newDatabaseFile == "")
+								{
+									MessageBox.Show("error processing database");
 									return;
 								}
+								InstallDatabase(newDatabaseFile);
 							}
 							if (newDatabaseFile != "")
 							{
@@ -355,7 +438,7 @@ namespace GoldenTeeAssistant
 												}
 												{
 													XmlNode Node = xmlDoc.SelectSingleNode("/GameProfile/ConfigValues/FieldInformation[FieldName='DbName']/FieldValue");
-													if (Node != null) Node.InnerText = "GameDB06";
+													if (Node != null) Node.InnerText = _databaseName;
 												}
 												{
 													XmlNode Node = xmlDoc.SelectSingleNode("/GameProfile/ConfigValues/FieldInformation[FieldName='User']/FieldValue");
@@ -728,7 +811,7 @@ namespace GoldenTeeAssistant
 
 		public static int CheckDatabaseExists()
 		{
-			string command = @"-U postgres -h 127.0.0.1 -p 5433 -d postgres -c ""SELECT 1 FROM pg_database WHERE datname = 'GameDB06';""";
+			string command = $@"-U postgres -h 127.0.0.1 -p 5433 -d postgres -c ""SELECT 1 FROM pg_database WHERE datname = '{_databaseName}';""";
 			string psqlPath = Path.Combine(_postgreBinPath, "psql.exe"); // Change this to your actual psql.exe path
 
 			var zz = File.Exists(psqlPath);
@@ -811,7 +894,7 @@ namespace GoldenTeeAssistant
 				//MessageBox.Show(output);
 
 				// Vérifier si la sortie contient un résultat
-				if (output.Contains("datname = \"GameDB06\""))
+				if (output.Contains($"datname = \"{_databaseName}\""))
 				{
 					dbExists = true;
 				}
@@ -845,14 +928,31 @@ namespace GoldenTeeAssistant
 						using (var input = new FileStream(oldFile, FileMode.Open, FileAccess.Read, FileShare.Read))
 						using (var output = new FileStream(newFile, FileMode.Create))
 						{
-							// Charger la ressource bddpatch dans un tableau de bytes
-							byte[] bdfPatchData = Properties.Resources.bddpatch; // Assuming bddpatch is the name in the .resx
-
-							// Créer un MemoryStream à partir des données
-							using (var bdfPatchStream = new MemoryStream(bdfPatchData))
+							if (_tpProfile == "GoldenTeeLive2006.xml")
 							{
-								BinaryPatch.Apply(input, () => new MemoryStream(bdfPatchData), output);
+								byte[] bdfPatchData = Properties.Resources.bddpatch;
+								using (var bdfPatchStream = new MemoryStream(bdfPatchData))
+								{
+									BinaryPatch.Apply(input, () => new MemoryStream(bdfPatchData), output);
+								}
 							}
+							if (_tpProfile == "GoldenTeeLive2007.xml")
+							{
+								byte[] bdfPatchData = Properties.Resources.bddpatch2007;
+								using (var bdfPatchStream = new MemoryStream(bdfPatchData))
+								{
+									BinaryPatch.Apply(input, () => new MemoryStream(bdfPatchData), output);
+								}
+							}
+							if (_tpProfile == "PowerPuttLive2012.xml")
+							{
+								byte[] bdfPatchData = Properties.Resources.bddpatchpp12;
+								using (var bdfPatchStream = new MemoryStream(bdfPatchData))
+								{
+									BinaryPatch.Apply(input, () => new MemoryStream(bdfPatchData), output);
+								}
+							}
+
 						}
 					}
 					catch (Exception ex) 
@@ -865,10 +965,10 @@ namespace GoldenTeeAssistant
 
 		public static void InstallDatabase(string newDatabase)
 		{
-			string dropCommand = @"-U postgres -h 127.0.0.1 -p 5433 -c ""DROP DATABASE IF EXISTS """"GameDB06"""";""";
-			string createCommand = @"-U postgres -h 127.0.0.1 -p 5433 -c ""CREATE DATABASE """"GameDB06"""";""";
-			string restoreCommand = $@"-U postgres -h 127.0.0.1 -p 5433 -d ""GameDB06"" -F t --clean ""{newDatabase}""";
-			string installCommand = $@"-U postgres -h 127.0.0.1 -p 5433 -d ""GameDB06"" -F t ""{newDatabase}""";
+			string dropCommand = $@"-U postgres -h 127.0.0.1 -p 5433 -c ""DROP DATABASE IF EXISTS """"{_databaseName}"""";""";
+			string createCommand = $@"-U postgres -h 127.0.0.1 -p 5433 -c ""CREATE DATABASE """"{_databaseName}"""";""";
+			string restoreCommand = $@"-U postgres -h 127.0.0.1 -p 5433 -d ""{_databaseName}"" -F t --clean ""{newDatabase}""";
+			string installCommand = $@"-U postgres -h 127.0.0.1 -p 5433 -d ""{_databaseName}"" -F t ""{newDatabase}""";
 
 			string psqlPath = Path.Combine(_postgreBinPath, "psql.exe");
 			string pgRestorePath = Path.Combine(_postgreBinPath, "pg_restore.exe");

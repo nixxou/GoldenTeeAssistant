@@ -69,5 +69,25 @@ namespace GoldenTeeAssistant.Properties {
                 return ((byte[])(obj));
             }
         }
+        
+        /// <summary>
+        ///   Recherche une ressource localisée de type System.Byte[].
+        /// </summary>
+        internal static byte[] bddpatch2007 {
+            get {
+                object obj = ResourceManager.GetObject("bddpatch2007", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Recherche une ressource localisée de type System.Byte[].
+        /// </summary>
+        internal static byte[] bddpatchpp12 {
+            get {
+                object obj = ResourceManager.GetObject("bddpatchpp12", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
     }
 }
