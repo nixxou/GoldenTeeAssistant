@@ -141,6 +141,20 @@ namespace GoldenTeeAssistant
 					_possibleBddSourcePath.Add(bf_try1);
 					_possibleBddSourcePath.Add(bf_try3);
 				}
+				if (md5game == "498FC82C13175499C4B3982DCF3EBB75")
+				{
+					_databaseSourceFile = @"2222-postgresql_database-GameDB-backup";
+					_expectedMD5 = "92E17D665D8EF3DE08F36A8CC9466D47";
+					_expectedSize = 5641728;
+					_tpProfile = "SilverStrikeBowlingLive.xml";
+					_databaseName = "GapeDBSSB";
+					_patchToUse = "bddpatchssb.bdf";
+
+					string bf_try1 = Path.GetFullPath(Path.Combine(gamePath, "pg_backup", "2024-10-12", _databaseSourceFile));
+					string bf_try3 = Path.GetFullPath(Path.Combine(gamePath, _databaseSourceFile));
+					_possibleBddSourcePath.Add(bf_try1);
+					_possibleBddSourcePath.Add(bf_try3);
+				}
 				if (_databaseName == "")
 				{
 					MessageBox.Show("game.bin does not match any know md5");
@@ -947,6 +961,14 @@ namespace GoldenTeeAssistant
 							if (_tpProfile == "PowerPuttLive2012.xml")
 							{
 								byte[] bdfPatchData = Properties.Resources.bddpatchpp12;
+								using (var bdfPatchStream = new MemoryStream(bdfPatchData))
+								{
+									BinaryPatch.Apply(input, () => new MemoryStream(bdfPatchData), output);
+								}
+							}
+							if (_tpProfile == "SilverStrikeBowlingLive.xml")
+							{
+								byte[] bdfPatchData = Properties.Resources.bddpatchssb;
 								using (var bdfPatchStream = new MemoryStream(bdfPatchData))
 								{
 									BinaryPatch.Apply(input, () => new MemoryStream(bdfPatchData), output);
