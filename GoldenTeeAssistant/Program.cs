@@ -285,7 +285,7 @@ namespace GoldenTeeAssistant
 				string exeDir = Path.GetDirectoryName(exePath);
 				Process process = new Process();
 				process.StartInfo.FileName = selfExe;
-				process.StartInfo.Arguments = gamePath;
+				process.StartInfo.Arguments = "\"" + gamePath + "\"";
 				process.StartInfo.WorkingDirectory = exeDir;
 				process.StartInfo.UseShellExecute = true;
 				process.Start();
